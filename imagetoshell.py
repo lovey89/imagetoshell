@@ -2,13 +2,48 @@
 
 from PIL import Image
 import math
+import os
 
 PIXEL_WIDTH = 2
 
-TRUE_COLOR = False
+TRUE_COLOR = True
+use_half_pixels = False
 spaces_can_be_used_with_color = True
 
-im = Image.open('bowser.png', 'r').convert('RGBA')
+image_file = "bowser.png"
+
+def resize_image_to_screen(im, rows, columns):
+    width_multiplier = 1.0 if use_half_pixels else 0.5
+    height_multiplier = 1.8 if use_half_pixels else 0.9
+
+    im_width, im_height = im.size
+
+    should_be_resized = False
+
+    w_ratio = int(columns) * width_multiplier / float(im_width)
+    h_ratio = (int(rows) * height_multiplier) / float(im_height)
+
+    ratio = min(w_ratio, h_ratio)
+
+    if ratio < 1.0:
+        new_height = int(im_height * ratio)
+        new_width = int(im_width * ratio)
+        #Image.NEAREST (0)
+        #Image.LANCZOS (1)
+        #Image.BILINEAR (2)
+        #Image.BICUBIC (3)
+        #Image.BOX (4)
+        #Image.HAMMING
+        #return im.resize((new_width, new_height), Image.ANTIALIAS)
+        #return im.resize((new_width, new_height), Image.LANCZOS)
+        return im.resize((new_width, new_height), Image.NEAREST)
+    return im
+
+im = Image.open(image_file, 'r').convert('RGBA')
+rows, columns = os.popen('stty size', 'r').read().split()
+
+#im = im.resize((basewidth,hsize), Image.ANTIALIAS)
+im = resize_image_to_screen(im, rows, columns)
 
 width, height = im.size
 
@@ -197,4 +232,12 @@ def half_px():
             # █▓▒░
         print("\\033[0m")
 
-half_px()
+print("#!/bin/bash")
+print('echo -e "\\')
+
+if use_half_pixels:
+    half_px()
+else:
+    full_px()
+
+print('"')
