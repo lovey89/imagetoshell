@@ -16,12 +16,14 @@ parser.add_argument('image_file', help='foo help')
 parser.add_argument('-f', '--full-pixels', action='store_true')
 parser.add_argument('-a', '--ansi-colors', action='store_false', dest="true_color")
 parser.add_argument('-b', '--bash-output', action='store_true')
+parser.add_argument('-g', '--grey-scale', '--gray-scale', action='store_true')
 args = parser.parse_args()
 
 image_file = args.image_file
 use_full_pixels = args.full_pixels
 TRUE_COLOR = args.true_color
 bash_output = args.bash_output
+grey_scale = args.grey_scale
 
 if bash_output:
     ANSI_ESCAPE = '\\033['
@@ -96,15 +98,22 @@ def color_diff(r, g, b, ansi_color):
     return math.sqrt((abs(ar - r) ** 2 + abs(ag - g) ** 2 + abs(ab - b) ** 2) / 3)
 
 def to_terminal_code(r, g, b, true_colors):
+    avarage = (r + g + b) / 3
     if true_colors:
+        if grey_scale:
+            ravarage = round(avarage)
+            return f"2;{ravarage};{ravarage};{ravarage}"
         return f"2;{r};{g};{b}"
-    elif r >= 247 and g >= 247 and b >= 247:
+
+    elif avarage >= 247.0:
         return "5;231"
-    elif r <= 5 and g <= 5 and b <= 5:
+    elif avarage <= 5.0:
         return "5;16"
     else:
-        avarage = (r + g + b) / 3
         grey = round((min(avarage, 242) - 8) / 10) + 232
+
+        if grey_scale:
+            return f"5;{grey}"
 
         ansi = 16 \
             + 36 * color_multiplier(r) \
