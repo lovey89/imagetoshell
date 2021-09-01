@@ -3,18 +3,32 @@
 from PIL import Image
 import math
 import os
+import argparse
 
 PIXEL_WIDTH = 2
 
-TRUE_COLOR = True
-use_half_pixels = False
+ANSI_ESCAPE = '\033['
+
 spaces_can_be_used_with_color = True
 
-image_file = "bowser.png"
+parser = argparse.ArgumentParser()
+parser.add_argument('image_file', help='foo help')
+parser.add_argument('-f', '--full-pixels', action='store_true')
+parser.add_argument('-a', '--ansi-colors', action='store_false', dest="true_color")
+parser.add_argument('-b', '--bash-output', action='store_true')
+args = parser.parse_args()
+
+image_file = args.image_file
+use_full_pixels = args.full_pixels
+TRUE_COLOR = args.true_color
+bash_output = args.bash_output
+
+if bash_output:
+    ANSI_ESCAPE = '\\033['
 
 def resize_image_to_screen(im, rows, columns):
-    width_multiplier = 1.0 if use_half_pixels else 0.5
-    height_multiplier = 1.8 if use_half_pixels else 0.9
+    width_multiplier = 0.5 if use_full_pixels else 1.0
+    height_multiplier = 0.9 if use_full_pixels else 1.8
 
     im_width, im_height = im.size
 
@@ -113,7 +127,7 @@ def full_px():
                 continue
             elif spaces > 0:
                 if spaces != x:
-                    print("\\033[0m", end = '')
+                    print(f"{ANSI_ESCAPE}0m", end = '')
                 print(" " * PIXEL_WIDTH * spaces, end = '')
                 spaces = 0
                 last_code = ""
@@ -132,11 +146,11 @@ def full_px():
             b = blue.getpixel((x,y))
             code = to_terminal_code(r, g, b, TRUE_COLOR)
             if code != last_code:
-                print(f"\\033[38;{code}m", end = '')
+                print(f"{ANSI_ESCAPE}38;{code}m", end = '')
                 last_code = code
             print(fc * PIXEL_WIDTH, end = '')
             # █▓▒░
-        print("\\033[0m")
+        print(f"{ANSI_ESCAPE}0m")
 
 def get_alpha(x, y):
     if y < 0:
@@ -159,7 +173,7 @@ def half_px():
                 continue
             elif spaces > 0:
                 if spaces != x:
-                    print("\\033[0m", end = '')
+                    print(f"{ANSI_ESCAPE}0m", end = '')
                 print(" " * spaces, end = '')
                 spaces = 0
                 last_fg = None
@@ -168,27 +182,27 @@ def half_px():
             if al == 0:
                 fc = "▀"
                 if last_bg:
-                    print("\\033[49m", end = '')
+                    print(f"{ANSI_ESCAPE}49m", end = '')
                     last_bg = None
                 r = red.getpixel((x,y))
                 g = green.getpixel((x,y))
                 b = blue.getpixel((x,y))
                 code = to_terminal_code(r, g, b, TRUE_COLOR)
                 if last_fg != code:
-                    print(f"\\033[38;{code}m", end = '')
+                    print(f"{ANSI_ESCAPE}38;{code}m", end = '')
                     last_fg = code
                 print(fc, end = '')
             elif au == 0:
                 fc = "▄"
                 if last_bg:
-                    print("\\033[49m", end = '')
+                    print(f"{ANSI_ESCAPE}49m", end = '')
                     last_bg = None
                 r = red.getpixel((x,y+1))
                 g = green.getpixel((x,y+1))
                 b = blue.getpixel((x,y+1))
                 code = to_terminal_code(r, g, b, TRUE_COLOR)
                 if last_fg != code:
-                    print(f"\\033[38;{code}m", end = '')
+                    print(f"{ANSI_ESCAPE}38;{code}m", end = '')
                     last_fg = code
                 print(fc, end = '')
             else:
@@ -205,39 +219,41 @@ def half_px():
                         print(' ', end = '')
                         continue
                     elif last_fg != codeu:
-                        print(f"\\033[38;{codeu}m", end = '')
+                        print(f"{ANSI_ESCAPE}38;{codeu}m", end = '')
                         last_fg = codeu
                     print('█', end = '')
                 elif codeu == last_fg:
                     if last_bg != codel:
-                        print(f"\\033[48;{codel}m", end = '')
+                        print(f"{ANSI_ESCAPE}48;{codel}m", end = '')
                         last_bg = codel
                     print('▀', end = '')
                 elif codeu == last_bg:
-                    print(f"\\033[38;{codel}m", end = '')
+                    print(f"{ANSI_ESCAPE}38;{codel}m", end = '')
                     last_fg = codel
                     print('▄', end = '')
                 elif codel == last_fg:
-                    print(f"\\033[48;{codeu}m", end = '')
+                    print(f"{ANSI_ESCAPE}48;{codeu}m", end = '')
                     last_bg = codeu
                     print('▄', end = '')
                 elif codel == last_bg:
-                    print(f"\\033[38;{codeu}m", end = '')
+                    print(f"{ANSI_ESCAPE}38;{codeu}m", end = '')
                     last_fg = codeu
                     print('▀', end = '')
                 else:
-                    print(f"\\033[38;{codel}m\\033[48;{codeu}m▄", end = '')
+                    print(f"{ANSI_ESCAPE}38;{codel}m{ANSI_ESCAPE}48;{codeu}m▄", end = '')
                     last_fg = codel
                     last_bg = codeu
             # █▓▒░
-        print("\\033[0m")
+        print(f"{ANSI_ESCAPE}0m")
 
-print("#!/bin/bash")
-print('echo -e "\\')
+if bash_output:
+    print("#!/bin/bash")
+    print('echo -en "\\')
 
-if use_half_pixels:
-    half_px()
-else:
+if use_full_pixels:
     full_px()
+else:
+    half_px()
 
-print('"')
+if bash_output:
+    print('"')
