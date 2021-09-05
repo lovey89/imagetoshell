@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 
+import sys
+import os
 from PIL import Image
 import math
-import os
 import argparse
+
+RESIZE_METHOD = Image.NEAREST
+        #Image.NEAREST (0)
+        #Image.LANCZOS (1)
+        #Image.BILINEAR (2)
+        #Image.BICUBIC (3)
+        #Image.BOX (4)
+        #Image.HAMMING
+        #Image.ANTIALIAS
 
 PIXEL_WIDTH = 2
 
@@ -17,6 +27,9 @@ parser.add_argument('-f', '--full-pixels', action='store_true')
 parser.add_argument('-a', '--ansi-colors', action='store_false', dest="true_color")
 parser.add_argument('-b', '--bash-output', action='store_true')
 parser.add_argument('-g', '--grey-scale', '--gray-scale', action='store_true')
+parser.add_argument('-o', '--original-size', action='store_true')
+parser.add_argument('-r', '--rows', '--height', default=None)
+parser.add_argument('-c', '--columns', '--width', default=None)
 args = parser.parse_args()
 
 image_file = args.image_file
@@ -24,6 +37,13 @@ use_full_pixels = args.full_pixels
 TRUE_COLOR = args.true_color
 bash_output = args.bash_output
 grey_scale = args.grey_scale
+original_size = args.original_size
+requested_height = args.rows
+requested_width = args.columns
+
+if len([v for v in [original_size, requested_height, requested_width] if v == True or (v is not None and v != False)]) > 1:
+    print("Can only provide one of -o, -r and -c at a time. Exiting..", file = sys.stderr)
+    exit(1)
 
 if bash_output:
     ANSI_ESCAPE = '\\033['
@@ -34,8 +54,6 @@ def resize_image_to_screen(im, rows, columns):
 
     im_width, im_height = im.size
 
-    should_be_resized = False
-
     w_ratio = int(columns) * width_multiplier / float(im_width)
     h_ratio = (int(rows) * height_multiplier) / float(im_height)
 
@@ -44,22 +62,34 @@ def resize_image_to_screen(im, rows, columns):
     if ratio < 1.0:
         new_height = int(im_height * ratio)
         new_width = int(im_width * ratio)
-        #Image.NEAREST (0)
-        #Image.LANCZOS (1)
-        #Image.BILINEAR (2)
-        #Image.BICUBIC (3)
-        #Image.BOX (4)
-        #Image.HAMMING
-        #return im.resize((new_width, new_height), Image.ANTIALIAS)
-        #return im.resize((new_width, new_height), Image.LANCZOS)
-        return im.resize((new_width, new_height), Image.NEAREST)
+        return im.resize((new_width, new_height), RESIZE_METHOD)
+    return im
+
+def resize_image(im, rows, columns):
+    if rows and columns:
+        print("Internal error")
+        exit(255)
+
+    im_width, im_height = im.size
+
+    if rows:
+        ratio = int(rows) / im_height
+    else:
+        ratio = int(columns) / im_width
+
+    if ratio < 1.0:
+        new_height = int(im_height * ratio)
+        new_width = int(im_width * ratio)
+        return im.resize((new_width, new_height), RESIZE_METHOD)
     return im
 
 im = Image.open(image_file, 'r').convert('RGBA')
-rows, columns = os.popen('stty size', 'r').read().split()
 
-#im = im.resize((basewidth,hsize), Image.ANTIALIAS)
-im = resize_image_to_screen(im, rows, columns)
+if requested_height or requested_width:
+    im = resize_image(im, requested_height, requested_width)
+elif not original_size:
+    rows, columns = os.popen('stty size', 'r').read().split()
+    im = resize_image_to_screen(im, rows, columns)
 
 width, height = im.size
 
