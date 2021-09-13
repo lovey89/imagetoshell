@@ -6,7 +6,7 @@ from PIL import Image
 import math
 import argparse
 
-RESIZE_METHOD = Image.NEAREST
+RESIZE_METHOD = Image.BOX
         #Image.NEAREST (0)
         #Image.LANCZOS (1)
         #Image.BILINEAR (2)
@@ -26,6 +26,7 @@ parser.add_argument('image_file', help='foo help')
 parser.add_argument('-f', '--full-pixels', action='store_true')
 parser.add_argument('-a', '--ansi-colors', action='store_false', dest="true_color")
 parser.add_argument('-b', '--bash-output', action='store_true')
+parser.add_argument('-p', '--pixel-art-resize', action='store_true')
 parser.add_argument('-g', '--grey-scale', '--gray-scale', action='store_true')
 parser.add_argument('-o', '--original-size', action='store_true')
 parser.add_argument('-r', '--rows', '--height', default=None)
@@ -40,6 +41,7 @@ grey_scale = args.grey_scale
 original_size = args.original_size
 requested_height = args.rows
 requested_width = args.columns
+RESIZE_METHOD = Image.NEAREST if args.pixel_art_resize else Image.LANCZOS
 
 if len([v for v in [original_size, requested_height, requested_width] if v == True or (v is not None and v != False)]) > 1:
     print("Can only provide one of -o, -r and -c at a time. Exiting..", file = sys.stderr)
@@ -256,11 +258,16 @@ def half_px():
                 if codeu == codel:
                     if last_bg == codeu and spaces_can_be_used_with_color:
                         print(' ', end = '')
-                        continue
-                    elif last_fg != codeu:
+                    elif last_fg == codeu:
+                        print('█', end = '')
+                    elif last_fg == None or not spaces_can_be_used_with_color:
                         print(f"{ANSI_ESCAPE}38;{codeu}m", end = '')
                         last_fg = codeu
-                    print('█', end = '')
+                        print('█', end = '')
+                    else:
+                        print(f"{ANSI_ESCAPE}48;{codeu}m", end = '')
+                        last_bg = codeu
+                        print(' ', end = '')
                 elif codeu == last_fg:
                     if last_bg != codel:
                         print(f"{ANSI_ESCAPE}48;{codel}m", end = '')
