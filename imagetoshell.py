@@ -209,7 +209,10 @@ def half_px():
             au = get_alpha(x, y)
             al = get_alpha(x, y+1)
 
-            if au == 0 and al == 0:
+            upper_transparent = au < 51
+            lower_transparent = al < 51
+
+            if upper_transparent and lower_transparent:
                 spaces += 1
                 continue
             elif spaces > 0:
@@ -220,7 +223,7 @@ def half_px():
                 last_fg = None
                 last_bg = None
 
-            if al == 0:
+            if lower_transparent:
                 fc = "▀"
                 if last_bg:
                     print(f"{ANSI_ESCAPE}49m", end = '')
@@ -233,7 +236,7 @@ def half_px():
                     print(f"{ANSI_ESCAPE}38;{code}m", end = '')
                     last_fg = code
                 print(fc, end = '')
-            elif au == 0:
+            elif upper_transparent:
                 fc = "▄"
                 if last_bg:
                     print(f"{ANSI_ESCAPE}49m", end = '')
