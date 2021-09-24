@@ -15,6 +15,8 @@ RESIZE_METHOD = Image.BOX
         #Image.HAMMING
         #Image.ANTIALIAS
 
+output = []
+
 PIXEL_WIDTH = 2
 
 ANSI_ESCAPE = '\033['
@@ -159,6 +161,7 @@ def to_terminal_code(r, g, b, true_colors):
 
 def full_px():
     for y in range(0, height):
+        row_result = ""
         last_code = ""
         spaces = 0
         for x in range(0, width):
@@ -168,8 +171,8 @@ def full_px():
                 continue
             elif spaces > 0:
                 if spaces != x:
-                    print(f"{ANSI_ESCAPE}0m", end = '')
-                print(" " * PIXEL_WIDTH * spaces, end = '')
+                    row_result += f"{ANSI_ESCAPE}0m"
+                row_result += " " * PIXEL_WIDTH * spaces
                 spaces = 0
                 last_code = ""
 
@@ -187,11 +190,12 @@ def full_px():
             b = blue.getpixel((x,y))
             code = to_terminal_code(r, g, b, TRUE_COLOR)
             if code != last_code:
-                print(f"{ANSI_ESCAPE}38;{code}m", end = '')
+                row_result += f"{ANSI_ESCAPE}38;{code}m"
                 last_code = code
-            print(fc * PIXEL_WIDTH, end = '')
+            row_result += fc * PIXEL_WIDTH
             # █▓▒░
-        print(f"{ANSI_ESCAPE}0m")
+        row_result += f"{ANSI_ESCAPE}0m"
+        output.append(row_result)
 
 def get_alpha(x, y):
     if y < 0:
@@ -202,6 +206,7 @@ def get_alpha(x, y):
 def half_px():
     odd = height % 2
     for y in range(0 - odd, height, 2):
+        row_result = ""
         last_fg = None
         last_bg = None
         spaces = 0
@@ -217,8 +222,8 @@ def half_px():
                 continue
             elif spaces > 0:
                 if spaces != x:
-                    print(f"{ANSI_ESCAPE}0m", end = '')
-                print(" " * spaces, end = '')
+                    row_result += f"{ANSI_ESCAPE}0m"
+                row_result += " " * spaces
                 spaces = 0
                 last_fg = None
                 last_bg = None
@@ -226,29 +231,29 @@ def half_px():
             if lower_transparent:
                 fc = "▀"
                 if last_bg:
-                    print(f"{ANSI_ESCAPE}49m", end = '')
+                    row_result += f"{ANSI_ESCAPE}49m"
                     last_bg = None
                 r = red.getpixel((x,y))
                 g = green.getpixel((x,y))
                 b = blue.getpixel((x,y))
                 code = to_terminal_code(r, g, b, TRUE_COLOR)
                 if last_fg != code:
-                    print(f"{ANSI_ESCAPE}38;{code}m", end = '')
+                    row_result += f"{ANSI_ESCAPE}38;{code}m"
                     last_fg = code
-                print(fc, end = '')
+                row_result += fc
             elif upper_transparent:
                 fc = "▄"
                 if last_bg:
-                    print(f"{ANSI_ESCAPE}49m", end = '')
+                    row_result += f"{ANSI_ESCAPE}49m"
                     last_bg = None
                 r = red.getpixel((x,y+1))
                 g = green.getpixel((x,y+1))
                 b = blue.getpixel((x,y+1))
                 code = to_terminal_code(r, g, b, TRUE_COLOR)
                 if last_fg != code:
-                    print(f"{ANSI_ESCAPE}38;{code}m", end = '')
+                    row_result += f"{ANSI_ESCAPE}38;{code}m"
                     last_fg = code
-                print(fc, end = '')
+                row_result += fc
             else:
                 ru = red.getpixel((x,y))
                 gu = green.getpixel((x,y))
@@ -260,49 +265,53 @@ def half_px():
                 codel = to_terminal_code(rl, gl, bl, TRUE_COLOR)
                 if codeu == codel:
                     if last_bg == codeu and spaces_can_be_used_with_color:
-                        print(' ', end = '')
+                        row_result += ' '
                     elif last_fg == codeu:
-                        print('█', end = '')
+                        row_result += '█'
                     elif last_fg == None or not spaces_can_be_used_with_color:
-                        print(f"{ANSI_ESCAPE}38;{codeu}m", end = '')
+                        row_result += f"{ANSI_ESCAPE}38;{codeu}m"
                         last_fg = codeu
-                        print('█', end = '')
+                        row_result += '█'
                     else:
-                        print(f"{ANSI_ESCAPE}48;{codeu}m", end = '')
+                        row_result += f"{ANSI_ESCAPE}48;{codeu}m"
                         last_bg = codeu
-                        print(' ', end = '')
+                        row_result += ' '
                 elif codeu == last_fg:
                     if last_bg != codel:
-                        print(f"{ANSI_ESCAPE}48;{codel}m", end = '')
+                        row_result += f"{ANSI_ESCAPE}48;{codel}m"
                         last_bg = codel
-                    print('▀', end = '')
+                    row_result += '▀'
                 elif codeu == last_bg:
-                    print(f"{ANSI_ESCAPE}38;{codel}m", end = '')
+                    row_result += f"{ANSI_ESCAPE}38;{codel}m"
                     last_fg = codel
-                    print('▄', end = '')
+                    row_result += '▄'
                 elif codel == last_fg:
-                    print(f"{ANSI_ESCAPE}48;{codeu}m", end = '')
+                    row_result += f"{ANSI_ESCAPE}48;{codeu}m"
                     last_bg = codeu
-                    print('▄', end = '')
+                    row_result += '▄'
                 elif codel == last_bg:
-                    print(f"{ANSI_ESCAPE}38;{codeu}m", end = '')
+                    row_result += f"{ANSI_ESCAPE}38;{codeu}m"
                     last_fg = codeu
-                    print('▀', end = '')
+                    row_result += '▀'
                 else:
-                    print(f"{ANSI_ESCAPE}38;{codel}m{ANSI_ESCAPE}48;{codeu}m▄", end = '')
+                    row_result += f"{ANSI_ESCAPE}38;{codel}m{ANSI_ESCAPE}48;{codeu}m▄"
                     last_fg = codel
                     last_bg = codeu
             # █▓▒░
-        print(f"{ANSI_ESCAPE}0m")
-
-if bash_output:
-    print("#!/bin/bash")
-    print('echo -en "\\')
+        row_result += f"{ANSI_ESCAPE}0m"
+        output.append(row_result)
 
 if use_full_pixels:
     full_px()
 else:
     half_px()
+
+if bash_output:
+    print("#!/bin/bash")
+    print('echo -en "\\')
+
+for row in output:
+    print(row)
 
 if bash_output:
     print('"')
