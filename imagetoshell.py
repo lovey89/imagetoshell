@@ -25,14 +25,25 @@ spaces_can_be_used_with_color = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('image_file', help='foo help')
-parser.add_argument('-f', '--full-pixels', action='store_true')
-parser.add_argument('-a', '--ansi-colors', action='store_false', dest="true_color")
-parser.add_argument('-b', '--bash-output', action='store_true')
-parser.add_argument('-p', '--pixel-art-resize', action='store_true')
-parser.add_argument('-g', '--grey-scale', '--gray-scale', action='store_true')
-parser.add_argument('-o', '--original-size', action='store_true')
-parser.add_argument('-r', '--rows', '--height', default=None)
-parser.add_argument('-c', '--columns', '--width', default=None)
+
+color_group = parser.add_argument_group("color arguments")
+color_group.add_argument('-a', '--ansi-colors', action='store_false', dest="true_color")
+color_group.add_argument('-g', '--grey-scale', '--gray-scale', action='store_true')
+
+size_group = parser.add_argument_group("size arguments")
+size_group.add_argument('-o', '--original-size', action='store_true')
+size_group.add_argument('-r', '--rows', '--height', default=None)
+size_group.add_argument('-c', '--columns', '--width', default=None)
+size_group.add_argument('-p', '--pixel-art-resize', action='store_true')
+size_group.add_argument('-f', '--full-pixels', action='store_true')
+
+output_group = parser.add_argument_group("output arguments")
+output_group.add_argument('-b', '--bash-output', action='store_true')
+
+say_group = parser.add_argument_group("say arguments")
+say_group.add_argument('-s', '--say', action='store_true')
+say_group.add_argument('--say-offset', type=int, default=7)
+say_group.add_argument('--say-max-depth', type=int, default=4)
 args = parser.parse_args()
 
 image_file = args.image_file
@@ -43,6 +54,9 @@ grey_scale = args.grey_scale
 original_size = args.original_size
 requested_height = args.rows
 requested_width = args.columns
+bubble=args.say
+say_offset=args.say_offset
+say_depth=args.say_max_depth
 RESIZE_METHOD = Image.NEAREST if args.pixel_art_resize else Image.LANCZOS
 
 if len([v for v in [original_size, requested_height, requested_width] if v == True or (v is not None and v != False)]) > 1:
@@ -194,8 +208,9 @@ def full_px():
                 last_code = code
             row_result += fc * PIXEL_WIDTH
             # █▓▒░
-        row_result += f"{ANSI_ESCAPE}0m"
-        output.append(row_result)
+        if row_result != "" or output:
+            row_result += f"{ANSI_ESCAPE}0m"
+            output.append(row_result)
 
 def get_alpha(x, y):
     if y < 0:
@@ -298,13 +313,27 @@ def half_px():
                     last_fg = codel
                     last_bg = codeu
             # █▓▒░
-        row_result += f"{ANSI_ESCAPE}0m"
-        output.append(row_result)
+        if row_result != "" or output:
+            row_result += f"{ANSI_ESCAPE}0m"
+            output.append(row_result)
 
 if use_full_pixels:
     full_px()
 else:
     half_px()
+
+if bubble:
+    limit = min(len(output) - 1, say_depth)
+    offset = say_offset
+    for i, row in enumerate(output):
+        if i == limit:
+            break
+
+        if row.startswith(" " * (offset + 3 + 2 * i)) and output[i + 1][offset - 1 + 2 * i:offset + 2 + 2 * i] == "   ":
+            new_row = " " * (offset + 2 * i) + "\\" + row[(offset + 1 + 2 * i):]
+            output[i] = new_row
+        else:
+            break
 
 if bash_output:
     print("#!/bin/bash")
