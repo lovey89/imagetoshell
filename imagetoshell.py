@@ -6,6 +6,10 @@ from PIL import Image
 import math
 import argparse
 
+import requests
+import re
+from io import BytesIO
+
 RESIZE_METHOD = Image.BOX
         #Image.NEAREST (0)
         #Image.LANCZOS (1)
@@ -101,7 +105,15 @@ def resize_image(im, rows, columns):
         return im.resize((new_width, new_height), RESIZE_METHOD)
     return im
 
-im = Image.open(image_file, 'r').convert('RGBA')
+if os.path.isfile(image_file):
+    im = Image.open(image_file, 'r').convert('RGBA')
+elif re.match("https?://", image_file, re.IGNORECASE):
+    url = image_file
+    response = requests.get(url)
+    im = Image.open(BytesIO(response.content), 'r').convert('RGBA')
+else:
+    print(f"File '{image_file}' doesn't exist. Exiting...")
+    exit(1)
 
 if requested_height or requested_width:
     im = resize_image(im, requested_height, requested_width)
