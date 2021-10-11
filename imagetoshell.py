@@ -123,7 +123,7 @@ elif not original_size:
 
 width, height = im.size
 
-red, green, blue, alpha = im.split()
+im_data = im.getdata()
 
 def color_multiplier(v):
     if v >= 235:
@@ -191,7 +191,8 @@ def full_px():
         last_code = ""
         spaces = 0
         for x in range(0, width):
-            a = alpha.getpixel((x,y))
+            r, g, b, a = get_pixel(x, y)
+
             if a < 51:
                 spaces += 1
                 continue
@@ -211,9 +212,6 @@ def full_px():
             else:
                 fc = "█"
 
-            r = red.getpixel((x,y))
-            g = green.getpixel((x,y))
-            b = blue.getpixel((x,y))
             code = to_terminal_code(r, g, b, TRUE_COLOR)
             if code != last_code:
                 row_result += f"{ANSI_ESCAPE}38;{code}m"
@@ -224,11 +222,11 @@ def full_px():
             row_result += f"{ANSI_ESCAPE}0m"
             output.append(row_result)
 
-def get_alpha(x, y):
+def get_pixel(x, y):
     if y < 0:
-        return 0
-    else:
-        return alpha.getpixel((x, y))
+        return (0, 0, 0, 0)
+    index = y * width + x
+    return im_data[index]
 
 def half_px():
     odd = height % 2
@@ -238,8 +236,8 @@ def half_px():
         last_bg = None
         spaces = 0
         for x in range(0, width):
-            au = get_alpha(x, y)
-            al = get_alpha(x, y+1)
+            ru, gu, bu, au = get_pixel(x, y)
+            rl, gl, bl, al = get_pixel(x, y+1)
 
             upper_transparent = au < 51
             lower_transparent = al < 51
@@ -260,10 +258,7 @@ def half_px():
                 if last_bg:
                     row_result += f"{ANSI_ESCAPE}49m"
                     last_bg = None
-                r = red.getpixel((x,y))
-                g = green.getpixel((x,y))
-                b = blue.getpixel((x,y))
-                code = to_terminal_code(r, g, b, TRUE_COLOR)
+                code = to_terminal_code(ru, gu, bu, TRUE_COLOR)
                 if last_fg != code:
                     row_result += f"{ANSI_ESCAPE}38;{code}m"
                     last_fg = code
@@ -273,21 +268,12 @@ def half_px():
                 if last_bg:
                     row_result += f"{ANSI_ESCAPE}49m"
                     last_bg = None
-                r = red.getpixel((x,y+1))
-                g = green.getpixel((x,y+1))
-                b = blue.getpixel((x,y+1))
-                code = to_terminal_code(r, g, b, TRUE_COLOR)
+                code = to_terminal_code(rl, gl, bl, TRUE_COLOR)
                 if last_fg != code:
                     row_result += f"{ANSI_ESCAPE}38;{code}m"
                     last_fg = code
                 row_result += fc
             else:
-                ru = red.getpixel((x,y))
-                gu = green.getpixel((x,y))
-                bu = blue.getpixel((x,y))
-                rl = red.getpixel((x,y+1))
-                gl = green.getpixel((x,y+1))
-                bl = blue.getpixel((x,y+1))
                 codeu = to_terminal_code(ru, gu, bu, TRUE_COLOR)
                 codel = to_terminal_code(rl, gl, bl, TRUE_COLOR)
                 if codeu == codel:
